@@ -1,8 +1,5 @@
 ﻿using EF_1.Models;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace EF_1.Data
 {

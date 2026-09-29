@@ -6,7 +6,6 @@ namespace EF_1.Models
 {
     public class Enrollment
     {
-        // Внешний ключ к студенту.
         public int StudentId { get; set; }
 
         // Навигация: студент из данной записи.
