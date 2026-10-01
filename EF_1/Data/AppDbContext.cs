@@ -1,8 +1,5 @@
 ﻿using EF_1.Models;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace EF_1.Data
 {
@@ -31,6 +28,19 @@ namespace EF_1.Data
                 entity.Property(s => s.Email)
                     .IsRequired()
                     .HasMaxLength(100);
+
+                // Уникальный индекс: два студента не могут иметь один email.
+                entity.HasIndex(s => s.Email)
+                    .IsUnique()
+                    .HasDatabaseName("IX_Students_Email");
+
+                // Обычный индекс ускоряет поиск и сортировку по имени.
+                entity.HasIndex(s => s.FullName)
+                    .HasDatabaseName("IX_Students_FullName");
+
+                // CHECK-ограничение на уровне БД.
+                entity.ToTable(t => t.HasCheckConstraint(
+                    "CK_Students_Age", "Age BETWEEN 1 AND 120"));
             });
 
             modelBuilder.Entity<Teacher>(entity =>
@@ -44,6 +54,10 @@ namespace EF_1.Data
                 entity.Property(t => t.Email)
                     .IsRequired()
                     .HasMaxLength(100);
+
+                entity.HasIndex(t => t.Email)
+                    .IsUnique()
+                    .HasDatabaseName("IX_Teachers_Email");
             });
 
             modelBuilder.Entity<Course>(entity =>
@@ -56,12 +70,22 @@ namespace EF_1.Data
 
                 entity.Property(c => c.DurationHours)
                     .IsRequired();
+
+                entity.HasIndex(c => c.Title)
+                    .IsUnique()
+                    .HasDatabaseName("IX_Courses_Title");
+
+                entity.ToTable(t => t.HasCheckConstraint(
+                    "CK_Courses_Duration", "DurationHours > 0"));
             });
 
             modelBuilder.Entity<Enrollment>(entity =>
             {
-                // Составной ключ: студент не может быть записан на один курс дважды.
                 entity.HasKey(e => new { e.StudentId, e.CourseId });
+
+                // Токен конкуренции: EF добавит Version в WHERE при UPDATE и DELETE.
+                entity.Property(e => e.Version)
+                    .IsConcurrencyToken();
 
                 entity.HasOne(e => e.Student)
                     .WithMany(s => s.Enrollments)
@@ -72,6 +96,9 @@ namespace EF_1.Data
                     .WithMany(c => c.Enrollments)
                     .HasForeignKey(e => e.CourseId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                entity.ToTable(t => t.HasCheckConstraint(
+                    "CK_Enrollments_Grade", "Grade IS NULL OR Grade BETWEEN 2 AND 5"));
             });
 
             modelBuilder.Entity<Student>()

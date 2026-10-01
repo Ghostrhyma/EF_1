@@ -1,8 +1,6 @@
 ﻿using EF_1.Data;
 using EF_1.Models;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Microsoft.EntityFrameworkCore;
 
 namespace EF_1.Services
 {
@@ -43,11 +41,20 @@ namespace EF_1.Services
                 Email = email
             };
 
-            context.Teachers.Add(teacher);
-            context.SaveChanges();
+            try
+            {
+                context.Teachers.Add(teacher);
+                context.SaveChanges();
 
-            Console.WriteLine($"Преподаватель «{teacher.FullName}» добавлен.");
-            Console.WriteLine($"Присвоенный Id: {teacher.Id}");
+                Console.WriteLine($"Преподаватель «{teacher.FullName}» добавлен.");
+                Console.WriteLine($"Присвоенный Id: {teacher.Id}");
+            }
+            catch (DbUpdateException)
+            {
+                context.Entry(teacher).State = EntityState.Detached;
+
+                Console.WriteLine("Не удалось сохранить: нарушено ограничение БД (например, email уже занят).");
+            }
         }
 
         public static void ShowAllTeachers(AppDbContext context)
@@ -73,5 +80,4 @@ namespace EF_1.Services
             }
         }
     }
-
 }

@@ -1,17 +1,13 @@
 ﻿using EF_1.Data;
 using EF_1.Models;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Microsoft.EntityFrameworkCore;
 
 namespace EF_1.Services
 {
-    public class StudentService
+    public static class StudentService
     {
         public static void ShowAllStudents(AppDbContext context)
         {
-            // OrderBy — сортировка по Id.
-            // ToList — выполнение SQL-запроса и получение списка объектов.
             var students = context.Students
                 .OrderBy(s => s.Id)
                 .ToList();
@@ -32,8 +28,6 @@ namespace EF_1.Services
 
         public static void ShowAdultStudents(AppDbContext context)
         {
-            // Where — фильтрация.
-            // В БД попадёт условие WHERE Age >= 18.
             var adults = context.Students
                 .Where(s => s.Age >= 18)
                 .OrderBy(s => s.FullName)
@@ -64,8 +58,6 @@ namespace EF_1.Services
                 return;
             }
 
-            // Contains — поиск фрагмента текста.
-            // Пример: ввод «ан» найдёт Анну, Жанну и т.д.
             var students = context.Students
                 .Where(s => s.FullName.Contains(searchText))
                 .OrderBy(s => s.FullName)
@@ -88,8 +80,6 @@ namespace EF_1.Services
 
         public static void ShowStudentsSortedByAgeAndName(AppDbContext context)
         {
-            // Сначала сортировка по возрасту от большего к меньшему.
-            // Затем при одинаковом возрасте — по имени по алфавиту.
             var students = context.Students
                 .OrderByDescending(s => s.Age)
                 .ThenBy(s => s.FullName)
@@ -108,8 +98,6 @@ namespace EF_1.Services
 
         public static void ShowStudentCards(AppDbContext context)
         {
-            // Select — проекция.
-            // Из таблицы выбираем не весь Student, а только нужные поля.
             var cards = context.Students
                 .Where(s => s.Age >= 18)
                 .OrderBy(s => s.FullName)
@@ -117,31 +105,28 @@ namespace EF_1.Services
                 {
                     StudentId = s.Id,
                     Name = s.FullName,
-                    Contact = s.Email,
-                    IsAdult = s.Age >= 18
+                    Contact = s.Email
                 })
                 .ToList();
 
             Console.WriteLine("===== Карточки совершеннолетних студентов =====");
 
+            if (cards.Count == 0)
+            {
+                Console.WriteLine("Совершеннолетних студентов не найдено.");
+                return;
+            }
+
             foreach (var card in cards)
             {
-                string adultStatus = card.IsAdult ? "Да" : "Нет";
-
-                Console.WriteLine(
-                    $"#{card.StudentId} | " +
-                    $"{card.Name} | " +
-                    $"{card.Contact} | " +
-                    $"Совершеннолетний: {adultStatus}");
+                Console.WriteLine($"#{card.StudentId} | {card.Name} | {card.Contact}");
             }
         }
 
-        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         public static void ShowStudentsPage(AppDbContext context)
         {
             const int pageSize = 3;
 
-            // Count выполняет SQL COUNT(*) и возвращает общее число студентов.
             int totalStudents = context.Students.Count();
 
             if (totalStudents == 0)
@@ -150,22 +135,18 @@ namespace EF_1.Services
                 return;
             }
 
-            // Например, 10 студентов / 3 на страницу = 4 страницы.
             int pageCount = (int)Math.Ceiling(totalStudents / (double)pageSize);
 
             Console.Write($"Введите номер страницы от 1 до {pageCount}: ");
             string input = Console.ReadLine() ?? string.Empty;
 
-            bool isCorrectPage = int.TryParse(input, out int page);
-
-            if (!isCorrectPage || page < 1 || page > pageCount)
+            if (!int.TryParse(input, out int page) || page < 1 || page > pageCount)
             {
                 Console.WriteLine("Номер страницы введён неверно.");
                 return;
             }
 
-            // Важно: перед Skip и Take всегда нужна сортировка.
-            // Иначе порядок строк, возвращаемых БД, может быть нестабильным.
+            // Перед Skip и Take всегда нужна сортировка.
             var students = context.Students
                 .OrderBy(s => s.Id)
                 .Skip((page - 1) * pageSize)
@@ -192,10 +173,6 @@ namespace EF_1.Services
             }
         }
 
-
-
-        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
         public static void ShowStatistics(AppDbContext context)
         {
             int totalCount = context.Students.Count();
@@ -207,18 +184,10 @@ namespace EF_1.Services
             }
 
             int adultCount = context.Students.Count(s => s.Age >= 18);
-
-            double averageAge = context.Students
-                .Average(s => s.Age);
-
-            int minAge = context.Students
-                .Min(s => s.Age);
-
-            int maxAge = context.Students
-                .Max(s => s.Age);
-
-            int gmailCount = context.Students
-                .Count(s => s.Email.EndsWith("@gmail.com"));
+            double averageAge = context.Students.Average(s => s.Age);
+            int minAge = context.Students.Min(s => s.Age);
+            int maxAge = context.Students.Max(s => s.Age);
+            int gmailCount = context.Students.Count(s => s.Email.EndsWith("@gmail.com"));
 
             Console.WriteLine("===== Статистика =====");
             Console.WriteLine($"Всего студентов: {totalCount}");
@@ -228,7 +197,6 @@ namespace EF_1.Services
             Console.WriteLine($"Максимальный возраст: {maxAge}");
             Console.WriteLine($"Студентов с Gmail: {gmailCount}");
         }
-
 
         public static void AddStudent(AppDbContext context)
         {
@@ -244,9 +212,7 @@ namespace EF_1.Services
             Console.Write("Введите возраст: ");
             string ageInput = Console.ReadLine() ?? string.Empty;
 
-            bool isCorrectAge = int.TryParse(ageInput, out int age);
-
-            if (!isCorrectAge || age < 1 || age > 120)
+            if (!int.TryParse(ageInput, out int age) || age < 1 || age > 120)
             {
                 Console.WriteLine("Возраст должен быть числом от 1 до 120.");
                 return;
@@ -261,7 +227,6 @@ namespace EF_1.Services
                 return;
             }
 
-            // Any проверяет, есть ли студент с таким email.
             bool emailExists = context.Students
                 .Any(s => s.Email == email);
 
@@ -278,13 +243,21 @@ namespace EF_1.Services
                 Email = email
             };
 
-            // Add — добавляет объект в отслеживание EF Core.
-            // SaveChanges — выполняет INSERT в базе данных.
-            context.Students.Add(student);
-            context.SaveChanges();
+            try
+            {
+                context.Students.Add(student);
+                context.SaveChanges();
 
-            Console.WriteLine($"Студент «{student.FullName}» добавлен.");
-            Console.WriteLine($"Присвоенный Id: {student.Id}");
+                Console.WriteLine($"Студент «{student.FullName}» добавлен.");
+                Console.WriteLine($"Присвоенный Id: {student.Id}");
+            }
+            catch (DbUpdateException)
+            {
+                // Неудачный объект остался бы в контексте и ломал бы следующие SaveChanges().
+                context.Entry(student).State = EntityState.Detached;
+
+                Console.WriteLine("Не удалось сохранить: нарушено ограничение БД (например, email уже занят).");
+            }
         }
 
         public static void PrintStudent(Student student)
@@ -296,7 +269,4 @@ namespace EF_1.Services
                 $"{student.Email}");
         }
     }
-
 }
-
-//test for github

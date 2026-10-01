@@ -1,8 +1,6 @@
 ﻿using EF_1.Data;
 using EF_1.Models;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Microsoft.EntityFrameworkCore;
 
 namespace EF_1.Services
 {
@@ -43,11 +41,20 @@ namespace EF_1.Services
                 DurationHours = durationHours
             };
 
-            context.Courses.Add(course);
-            context.SaveChanges();
+            try
+            {
+                context.Courses.Add(course);
+                context.SaveChanges();
 
-            Console.WriteLine($"Курс «{course.Title}» добавлен.");
-            Console.WriteLine($"Присвоенный Id: {course.Id}");
+                Console.WriteLine($"Курс «{course.Title}» добавлен.");
+                Console.WriteLine($"Присвоенный Id: {course.Id}");
+            }
+            catch (DbUpdateException)
+            {
+                context.Entry(course).State = EntityState.Detached;
+
+                Console.WriteLine("Не удалось сохранить: нарушено ограничение БД (например, название занято).");
+            }
         }
 
         public static void ShowAllCourses(AppDbContext context)

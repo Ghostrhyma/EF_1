@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace EF_1.Models
+﻿namespace EF_1.Models
 {
     public class Student
     {
@@ -15,13 +11,13 @@ namespace EF_1.Models
         public string Email { get; set; } = string.Empty;
 
         // Внешний ключ: Id куратора.
-        // int? означает, что у студента куратор может пока отсутствовать.
+        // int? означает, что у студента куратор может отсутствовать.
         public int? TeacherId { get; set; }
 
-        // Навигационное свойство: объект куратора студента.
+        // Навигация: объект куратора студента.
         public Teacher? Teacher { get; set; }
 
-        // Пока оставляем для урока 12.
+        // Записи студента на курсы (связь many-to-many через Enrollment).
         public List<Enrollment> Enrollments { get; set; } = new();
     }
 }
