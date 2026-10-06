@@ -1,3 +1,5 @@
 <Solution>
+  <Project Path="EF_1.Core/EF_1.Core.csproj" Id="de3322d0-896e-4e3f-a2e4-db2e71c95945" />
+  <Project Path="EF_1.Desktop/EF_1.Desktop.csproj" Id="d932442c-989c-4548-8db0-6fd02e9778f0" />
   <Project Path="EF_1/EF_1.csproj" />
 </Solution>

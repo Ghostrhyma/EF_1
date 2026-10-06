@@ -10,9 +10,23 @@ namespace EF_1.Data
         public DbSet<Course> Courses => Set<Course>();
         public DbSet<Enrollment> Enrollments => Set<Enrollment>();
 
+        // Один файл БД для консоли и окна.
+        public static string DatabasePath { get; } = BuildDatabasePath();
+
+        private static string BuildDatabasePath()
+        {
+            string folder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "EF_1");
+
+            Directory.CreateDirectory(folder);
+
+            return Path.Combine(folder, "school.db");
+        }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=school.db");
+            optionsBuilder.UseSqlite($"Data Source={DatabasePath}");
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
