@@ -1,6 +1,5 @@
 ﻿namespace EF_1.Desktop.Models;
 
-// Строка таблицы: плоская проекция студента.
 public class StudentRow
 {
     public int Id { get; set; }
@@ -10,6 +9,8 @@ public class StudentRow
     public int Age { get; set; }
 
     public string Email { get; set; } = string.Empty;
+
+    public int? TeacherId { get; set; }
 
     public string TeacherName { get; set; } = string.Empty;
 

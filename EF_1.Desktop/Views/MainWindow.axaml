@@ -3,67 +3,95 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:EF_1.Desktop.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="950" d:DesignHeight="560"
+        mc:Ignorable="d"
+        d:DesignWidth="950"
+        d:DesignHeight="560"
         x:Class="EF_1.Desktop.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="Учёт студентов"
-        Width="950" Height="560">
+        Width="950"
+        Height="560">
 
-    <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="12">
+    <Grid RowDefinitions="Auto,*,Auto" Margin="12">
 
-        <!-- Поиск, сортировка и действия -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
-            <TextBox Width="280"
-                     Watermark="Поиск по имени или email"
+        <StackPanel Grid.Row="0"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    Margin="0,0,0,8">
+
+            <TextBox Width="260"
+                     PlaceholderText="Поиск по имени или email"
                      Text="{Binding SearchText}" />
-            <Button Content="Найти" Command="{Binding LoadStudentsCommand}" />
-            <Button Content="Отмена" Command="{Binding LoadStudentsCancelCommand}" />
-            <ComboBox Width="200" SelectedIndex="{Binding SelectedSortIndex}">
+
+            <Button Content="Найти"
+                    Command="{Binding LoadStudentsCommand}" />
+
+            <Button Content="Отмена"
+                    Command="{Binding LoadStudentsCancelCommand}" />
+
+            <ComboBox Width="200"
+                      SelectedIndex="{Binding SelectedSortIndex}">
                 <ComboBoxItem Content="Сортировка: по имени" />
                 <ComboBoxItem Content="Сортировка: по возрасту ↓" />
                 <ComboBoxItem Content="Сортировка: по Id" />
             </ComboBox>
-            <Button Content="Удалить выбранного" Command="{Binding DeleteSelectedCommand}" />
-            <ProgressBar IsIndeterminate="True" Width="100"
+
+            <Button Content="Добавить"
+                    Command="{Binding AddStudentCommand}" />
+
+            <Button Content="Изменить"
+                    Command="{Binding EditSelectedCommand}" />
+
+            <Button Content="Удалить"
+                    Command="{Binding DeleteSelectedCommand}" />
+
+            <ProgressBar IsIndeterminate="True"
+                         Width="80"
                          IsVisible="{Binding IsBusy}" />
         </StackPanel>
 
-        <!-- Таблица. x:CompileBindings="False": привязки столбцов
-             работают через рефлексию, x:DataType для каждого столбца не нужен. -->
-        <Border Grid.Row="1" BorderThickness="1" BorderBrush="Gray">
+        <Border Grid.Row="1"
+                BorderThickness="1"
+                BorderBrush="Gray">
+
             <TableView x:CompileBindings="False"
                        ItemsSource="{Binding Students}"
                        SelectedItem="{Binding SelectedStudent, Mode=TwoWay}"
                        SelectionMode="Single"
                        CanUserResizeColumns="True">
+
                 <TableView.Columns>
-                    <TableViewColumn Header="Id" Width="60"
+                    <TableViewColumn Header="Id"
+                                     Width="60"
                                      Binding="{Binding Id}" />
-                    <TableViewColumn Header="ФИО" Width="2*"
+
+                    <TableViewColumn Header="ФИО"
+                                     Width="2*"
                                      Binding="{Binding FullName}" />
-                    <TableViewColumn Header="Возраст" Width="90"
+
+                    <TableViewColumn Header="Возраст"
+                                     Width="90"
                                      Binding="{Binding Age}"
                                      HorizontalContentAlignment="Right" />
-                    <TableViewColumn Header="Email" Width="2*"
+
+                    <TableViewColumn Header="Email"
+                                     Width="2*"
                                      Binding="{Binding Email}" />
-                    <TableViewColumn Header="Куратор" Width="*"
+
+                    <TableViewColumn Header="Куратор"
+                                     Width="*"
                                      Binding="{Binding TeacherName}" />
-                    <TableViewColumn Header="Курсов" Width="80"
+
+                    <TableViewColumn Header="Курсов"
+                                     Width="80"
                                      Binding="{Binding CoursesCount}"
                                      HorizontalContentAlignment="Right" />
                 </TableView.Columns>
             </TableView>
         </Border>
 
-        <!-- Форма добавления -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
-            <TextBox Width="250" Watermark="ФИО" Text="{Binding NewFullName}" />
-            <TextBox Width="80" Watermark="Возраст" Text="{Binding NewAge}" />
-            <TextBox Width="250" Watermark="Email" Text="{Binding NewEmail}" />
-            <Button Content="Добавить студента" Command="{Binding AddStudentCommand}" />
-        </StackPanel>
-
-        <!-- Статус -->
-        <TextBlock Grid.Row="3" Margin="0,8,0,0" Text="{Binding StatusMessage}" />
+        <TextBlock Grid.Row="2"
+                   Margin="0,8,0,0"
+                   Text="{Binding StatusMessage}" />
     </Grid>
 </Window>

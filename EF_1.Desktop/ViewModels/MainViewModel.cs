@@ -6,20 +6,26 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EF_1.Desktop.Models;
 using EF_1.Desktop.Services;
-using Microsoft.EntityFrameworkCore;
 
 namespace EF_1.Desktop.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
-    // Искусственная задержка, чтобы увидеть индикатор и отмену. Потом поставьте 0.
-    private const int SimulatedDelayMs = 1200;
+    // Искусственная задержка для демонстрации. Для реальной работы поставьте 0.
+    private const int SimulatedDelayMs = 600;
 
     private readonly SchoolDataService _dataService = new();
+    private readonly IDialogService _dialogs;
+
+    public MainViewModel(IDialogService dialogs)
+    {
+        _dialogs = dialogs;
+    }
 
     public ObservableCollection<StudentRow> Students { get; } = new();
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(EditSelectedCommand))]
     [NotifyCanExecuteChangedFor(nameof(DeleteSelectedCommand))]
     private StudentRow? _selectedStudent;
 
@@ -34,20 +40,9 @@ public partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddStudentCommand))]
+    [NotifyCanExecuteChangedFor(nameof(EditSelectedCommand))]
     [NotifyCanExecuteChangedFor(nameof(DeleteSelectedCommand))]
     private bool _isBusy;
-
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(AddStudentCommand))]
-    private string _newFullName = string.Empty;
-
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(AddStudentCommand))]
-    private string _newAge = string.Empty;
-
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(AddStudentCommand))]
-    private string _newEmail = string.Empty;
 
     private StudentSortOrder CurrentSortOrder => SelectedSortIndex switch
     {
@@ -56,7 +51,6 @@ public partial class MainViewModel : ViewModelBase
         _ => StudentSortOrder.ByName
     };
 
-    // Смена сортировки в ComboBox сразу перезагружает таблицу.
     partial void OnSelectedSortIndexChanged(int value)
     {
         if (LoadStudentsCommand.CanExecute(null))
@@ -84,7 +78,6 @@ public partial class MainViewModel : ViewModelBase
 
             var rows = await _dataService.GetStudentsAsync(SearchText, CurrentSortOrder, token);
 
-            // После await мы снова в UI-потоке, поэтому коллекцию менять безопасно.
             Students.Clear();
 
             foreach (var row in rows)
@@ -110,58 +103,60 @@ public partial class MainViewModel : ViewModelBase
 
     // ===== Добавление =====
 
-    private bool CanAddStudent() =>
-        !IsBusy &&
-        !string.IsNullOrWhiteSpace(NewFullName) &&
-        !string.IsNullOrWhiteSpace(NewAge) &&
-        !string.IsNullOrWhiteSpace(NewEmail);
+    private bool CanAddStudent() => !IsBusy;
 
     [RelayCommand(CanExecute = nameof(CanAddStudent))]
     private async Task AddStudentAsync()
     {
-        if (!int.TryParse(NewAge, out int age) || age < 1 || age > 120)
-        {
-            StatusMessage = "Возраст должен быть числом от 1 до 120.";
-            return;
-        }
-
-        string email = NewEmail.Trim();
-
-        if (!email.Contains('@'))
-        {
-            StatusMessage = "Введите корректный email.";
-            return;
-        }
-
-        IsBusy = true;
-
         try
         {
-            await _dataService.AddStudentAsync(NewFullName.Trim(), age, email);
+            var editor = new StudentEditViewModel(_dataService);
+            await editor.InitializeAsync();
 
-            NewFullName = string.Empty;
-            NewAge = string.Empty;
-            NewEmail = string.Empty;
+            bool saved = await _dialogs.ShowStudentEditorAsync(editor);
 
-            await LoadStudentsAsync(CancellationToken.None);
-
-            StatusMessage = "Студент добавлен.";
-        }
-        catch (InvalidOperationException ex)
-        {
-            StatusMessage = ex.Message;
-        }
-        catch (DbUpdateException)
-        {
-            StatusMessage = "Не удалось сохранить: нарушено ограничение БД.";
+            if (saved)
+            {
+                await LoadStudentsAsync(CancellationToken.None);
+                StatusMessage = "Студент добавлен.";
+            }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Ошибка: {ex.Message}";
         }
-        finally
+    }
+
+    // ===== Редактирование =====
+
+    private bool CanEditSelected() => SelectedStudent is not null && !IsBusy;
+
+    [RelayCommand(CanExecute = nameof(CanEditSelected))]
+    private async Task EditSelectedAsync()
+    {
+        var row = SelectedStudent;
+
+        if (row is null)
         {
-            IsBusy = false;
+            return;
+        }
+
+        try
+        {
+            var editor = new StudentEditViewModel(_dataService, row);
+            await editor.InitializeAsync();
+
+            bool saved = await _dialogs.ShowStudentEditorAsync(editor);
+
+            if (saved)
+            {
+                await LoadStudentsAsync(CancellationToken.None);
+                StatusMessage = "Изменения сохранены.";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Ошибка: {ex.Message}";
         }
     }
 
@@ -175,6 +170,15 @@ public partial class MainViewModel : ViewModelBase
         var student = SelectedStudent;
 
         if (student is null)
+        {
+            return;
+        }
+
+        bool confirmed = await _dialogs.ConfirmAsync(
+            "Удаление студента",
+            $"Удалить студента «{student.FullName}»? Это действие нельзя отменить.");
+
+        if (!confirmed)
         {
             return;
         }

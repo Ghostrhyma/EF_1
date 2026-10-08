@@ -1,6 +1,7 @@
 ﻿using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using EF_1.Desktop.Services;
 using EF_1.Desktop.ViewModels;
 using EF_1.Desktop.Views;
 
@@ -17,10 +18,11 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = new MainViewModel(),
-            };
+            var window = new MainWindow();
+
+            window.DataContext = new MainViewModel(new DialogService(window));
+
+            desktop.MainWindow = window;
         }
 
         base.OnFrameworkInitializationCompleted();

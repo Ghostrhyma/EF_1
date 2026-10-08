@@ -15,7 +15,6 @@ public class SchoolDataService
 {
     private bool _initialized;
 
-    // Создаёт БД и тестовые данные один раз за запуск.
     public async Task InitializeAsync(CancellationToken token)
     {
         if (_initialized)
@@ -27,7 +26,6 @@ public class SchoolDataService
 
         await context.Database.EnsureCreatedAsync(token);
 
-        // Seed-методы синхронные и быстрые, для учебного примера этого достаточно.
         SeedService.SeedStudents(context);
         SeedService.SeedTeachers(context);
         SeedService.SeedCourses(context);
@@ -40,10 +38,8 @@ public class SchoolDataService
         StudentSortOrder sortOrder,
         CancellationToken token)
     {
-        // Новый контекст на каждую операцию: в десктопе так надёжнее всего.
         await using var context = new AppDbContext();
 
-        // AsNoTracking: данные нужны только для показа.
         var query = context.Students.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -75,34 +71,71 @@ public class SchoolDataService
                 FullName = s.FullName,
                 Age = s.Age,
                 Email = s.Email,
+                TeacherId = s.TeacherId,
                 TeacherName = s.Teacher != null ? s.Teacher.FullName : "не назначен",
                 CoursesCount = s.Enrollments.Count
             })
             .ToListAsync(token);
     }
 
-    public async Task AddStudentAsync(
+    public async Task<List<TeacherOption>> GetTeachersAsync(CancellationToken token = default)
+    {
+        await using var context = new AppDbContext();
+
+        return await context.Teachers
+            .AsNoTracking()
+            .OrderBy(t => t.FullName)
+            .Select(t => new TeacherOption(t.Id, t.FullName))
+            .ToListAsync(token);
+    }
+
+    // id == null — создать нового студента, иначе обновить существующего.
+    public async Task SaveStudentAsync(
+        int? id,
         string fullName,
         int age,
         string email,
+        int? teacherId,
         CancellationToken token = default)
     {
         await using var context = new AppDbContext();
 
+        int currentId = id ?? 0;
+
         bool emailExists = await context.Students
-            .AnyAsync(s => s.Email == email, token);
+            .AnyAsync(s => s.Email == email && s.Id != currentId, token);
 
         if (emailExists)
         {
             throw new InvalidOperationException("Студент с таким email уже существует.");
         }
 
-        context.Students.Add(new Student
+        if (id is null)
         {
-            FullName = fullName,
-            Age = age,
-            Email = email
-        });
+            context.Students.Add(new Student
+            {
+                FullName = fullName,
+                Age = age,
+                Email = email,
+                TeacherId = teacherId
+            });
+        }
+        else
+        {
+            var student = await context.Students
+                .FindAsync(new object[] { id.Value }, token);
+
+            if (student is null)
+            {
+                throw new InvalidOperationException(
+                    "Студент не найден: возможно, его уже удалили.");
+            }
+
+            student.FullName = fullName;
+            student.Age = age;
+            student.Email = email;
+            student.TeacherId = teacherId;
+        }
 
         await context.SaveChangesAsync(token);
     }
